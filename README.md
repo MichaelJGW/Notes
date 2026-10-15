@@ -48,6 +48,26 @@ unless it's shared:
 `ALLOWED_EMAILS` in `server/.env` limits who can sign in and create notebooks (empty = any Google account).
 Anyone a notebook is shared with can always sign in. Both are checked on every request, so changes apply at once.
 
+### Email + password accounts
+
+Google won't redirect to private names like `notes.home.arpa`, so you can also sign up and sign in with an email and
+password: **Create an account** on the login screen. The form shows straight away when Google isn't set up.
+
+- Sign-up follows the same rule as sign-in: anyone in `ALLOWED_EMAILS` (or anyone at all, if it's empty), plus anyone
+  a notebook has been shared with
+- An account's email is its identity either way, so notebooks can be shared with password accounts by their email
+- **Emails aren't verified yet**, so whoever signs up first holds that address. To stop someone claiming yours, an email
+  that already owns notebooks or has signed in before (e.g. with Google) can't be used for a new password account
+- 10 sign-ups per IP address per hour; five wrong passwords in a row lock that email out for 15 minutes
+- There's no password reset by email yet; from the server's shell, `npm run user -- add <email>` sets a new password
+  (`npm run user -- remove <email>` / `list` also work)
+
+For example, to run on a mini PC at `http://notes.home.arpa:3001`, set `APP_URL=http://notes.home.arpa:3001` in
+`server/.env` (leave the Google settings empty), then `npm run build && npm start`. Behind an HTTPS reverse proxy, use
+the `https://` address so the session cookie is marked `Secure`.
+
+### Google OAuth setup
+
 To set up the OAuth client:
 
 1. In the [Google Cloud console](https://console.cloud.google.com/apis/credentials), create an OAuth client ID of type **Web application**
@@ -62,6 +82,9 @@ Production: `npm run build && npm start` serves the built client from the API at
 
 | Method | Path | Body |
 | --- | --- | --- |
+| GET | `/api/auth/providers` | → `{ google }`: whether Google sign-in is set up |
+| POST | `/api/auth/signup` | `{ email, password, name? }` |
+| POST | `/api/auth/local` | `{ email, password }` |
 | GET | `/api/auth/google` | → redirects to Google sign-in |
 | GET | `/api/auth/me` | → `{ email, name, picture }` |
 | POST | `/api/auth/logout` | |

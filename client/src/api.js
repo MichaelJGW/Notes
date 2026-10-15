@@ -16,6 +16,9 @@ async function request(method, url, body, options = {}) {
 export const api = {
   me: () => request('GET', '/auth/me'),
   logout: () => request('POST', '/auth/logout'),
+  providers: () => request('GET', '/auth/providers'),
+  localLogin: (email, password) => request('POST', '/auth/local', { email, password }),
+  signup: (name, email, password) => request('POST', '/auth/signup', { name, email, password }),
   loginUrl: '/api/auth/google',
 
   listNotebooks: () => request('GET', '/notebooks'),

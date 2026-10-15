@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react';
-import { NotebookPen } from 'lucide-react';
+import { LogIn, Mail, NotebookPen, UserPlus } from 'lucide-react';
 import { api } from '../api.js';
 import App from '../App.jsx';
 import EmptyIllustration from './EmptyIllustration.jsx';
 
-// Shows the Google sign-in screen until /api/auth/me returns a user, then the app.
+const MIN_PASSWORD_LENGTH = 8; // matches the server
+
+// Shows the sign-in screen until /api/auth/me returns a user, then the app.
 export default function AuthGate() {
   const [user, setUser] = useState(undefined); // undefined while checking, null when signed out
-  const [error] = useState(() => new URLSearchParams(window.location.search).get('auth_error'));
+  const [error, setError] = useState(() => new URLSearchParams(window.location.search).get('auth_error'));
+  const [providers, setProviders] = useState(null); // { google } once known
+  const [mode, setMode] = useState(null); // null (choose), 'signin' or 'signup'
+  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     try {
@@ -18,10 +24,40 @@ export default function AuthGate() {
     }
     if (error) window.history.replaceState(null, '', window.location.pathname + window.location.hash);
     api.me().then(setUser, () => setUser(null));
-  }, [error]);
+    api.providers().then(setProviders, () => setProviders({ google: false }));
+    // Only on mount: `error` is cleared from the URL above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  if (user === undefined) return null;
+  const field = (key) => ({ value: form[key], onChange: (e) => setForm((f) => ({ ...f, [key]: e.target.value })) });
+  const switchMode = (next) => {
+    setMode(next);
+    setError(null);
+    setForm((f) => ({ ...f, password: '', confirm: '' }));
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    if (mode === 'signup' && form.password !== form.confirm) return setError("Passwords don't match");
+    setBusy(true);
+    try {
+      if (mode === 'signup') await api.signup(form.name, form.email, form.password);
+      else await api.localLogin(form.email, form.password);
+      setUser(await api.me());
+    } catch (err) {
+      setError(err.message);
+      setForm((f) => ({ ...f, password: '', confirm: '' }));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (user === undefined || !providers) return null;
   if (user) return <App user={user} onLogout={() => api.logout().finally(() => setUser(null))} />;
+  // Without Google there's nothing to choose between, so show the email form straight away.
+  const current = mode ?? (providers.google ? null : 'signin');
+  const signingUp = current === 'signup';
 
   return (
     <div className="login">
@@ -30,13 +66,43 @@ export default function AuthGate() {
         <h1>
           <NotebookPen size={22} /> Notes<span className="brand-dot">.</span>
         </h1>
-        <p>Sign in with your Google account to read and edit your notes.</p>
+        <p>{signingUp ? 'Create an account to start taking notes.' : 'Sign in to read and edit your notes.'}</p>
         {error && <p className="login-error">{error}</p>}
-        <div className="empty-actions">
-          <a className="btn outline google-btn" href={api.loginUrl}>
-            <GoogleLogo /> Sign in with Google
+        {providers.google && (
+          <a className="btn outline login-btn google-btn" href={api.loginUrl}>
+            <GoogleLogo /> {signingUp ? 'Sign up with Google' : 'Sign in with Google'}
           </a>
-        </div>
+        )}
+        {current ? (
+          <form className="login-form" onSubmit={submit} key={current}>
+            {signingUp && <input type="text" autoComplete="name" placeholder="Name (optional)" maxLength={100} {...field('name')} />}
+            <input type="email" autoComplete="email" placeholder="Email" required autoFocus {...field('email')} />
+            <input
+              type="password"
+              autoComplete={signingUp ? 'new-password' : 'current-password'}
+              placeholder={signingUp ? `Password (at least ${MIN_PASSWORD_LENGTH} characters)` : 'Password'}
+              required
+              minLength={signingUp ? MIN_PASSWORD_LENGTH : undefined}
+              {...field('password')}
+            />
+            {signingUp && (
+              <input type="password" autoComplete="new-password" placeholder="Repeat password" required {...field('confirm')} />
+            )}
+            <button className="btn primary" type="submit" disabled={busy}>
+              {signingUp ? <UserPlus size={16} /> : <LogIn size={16} />} {signingUp ? 'Create account' : 'Sign in'}
+            </button>
+          </form>
+        ) : (
+          <button className="btn outline login-btn" onClick={() => switchMode('signin')}>
+            <Mail size={17} /> Sign in with email
+          </button>
+        )}
+        <p className="login-switch">
+          {signingUp ? 'Already have an account?' : 'New here?'}{' '}
+          <button className="link-btn" onClick={() => switchMode(signingUp ? 'signin' : 'signup')}>
+            {signingUp ? 'Sign in' : 'Create an account'}
+          </button>
+        </p>
       </div>
     </div>
   );

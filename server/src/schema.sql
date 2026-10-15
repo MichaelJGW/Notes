@@ -62,3 +62,12 @@ CREATE TABLE IF NOT EXISTS notebook_shares (
   PRIMARY KEY (notebook_id, email)
 );
 CREATE INDEX IF NOT EXISTS notebook_shares_email_idx ON notebook_shares(email);
+
+-- Email + password accounts for sign-in without Google (e.g. on a home network).
+-- Created with `npm run user`; the email is the identity, same as with Google.
+CREATE TABLE IF NOT EXISTS local_users (
+  email         TEXT PRIMARY KEY,
+  name          TEXT,
+  password_hash TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);

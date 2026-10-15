@@ -1140,3 +1140,15 @@ kbd {
 .share-empty, .share-hint { color: var(--text-muted); font-size: 13px; }
 .share-hint { margin: 8px 20px 16px; }
 .share-error { margin: 0 20px; color: var(--danger); font-size: 13px; }
+.login-form { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 320px; margin-top: 12px; animation: fadeUp 0.5s 0.26s var(--ease) both; }
+.login-form input {
+  height: 42px; padding: 0 14px; border: 1px solid var(--border); border-radius: 12px;
+  background: var(--surface); color: var(--text); font-size: 14px;
+}
+.login-form input:focus { outline: none; border-color: var(--orange); }
+.login-form .btn { justify-content: center; }
+.login-btn { width: 100%; max-width: 320px; justify-content: center; margin-top: 4px; animation: fadeUp 0.5s 0.26s var(--ease) both; }
+.login-card a.login-btn + .login-btn, .login-card a.login-btn + .login-form { margin-top: 8px; }
+.empty-state .login-switch { margin-top: 8px; font-size: 13.5px; }
+.link-btn { padding: 0; border: none; background: none; color: var(--orange); font-weight: 600; cursor: pointer; }
+.link-btn:hover { text-decoration: underline; }
